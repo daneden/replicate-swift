@@ -18,7 +18,7 @@ public class Client {
     private let token: String
 
     /// The underlying client session.
-    internal var session = URLSession(configuration: .default)
+    internal var session: URLSession
 
     /// The retry policy for requests made by the client.
     public var retryPolicy: RetryPolicy = .default
@@ -43,6 +43,21 @@ public class Client {
         self.baseURLString = baseURLString
         self.userAgent = userAgent
         self.token = token
+
+        let configuration = URLSessionConfiguration.default
+
+        var additionalHeaders: [String: String] = [
+            "Authorization": "Token \(token)",
+            "Accept": "application/json"
+        ]
+
+        if let userAgent {
+            additionalHeaders["User-Agent"] = userAgent
+        }
+
+        configuration.httpAdditionalHeaders = additionalHeaders
+
+        self.session = URLSession(configuration: configuration)
     }
 
     /// Runs a model and waits for its output.
@@ -470,16 +485,10 @@ public class Client {
 
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
-        request.addValue("Token \(token)", forHTTPHeaderField: "Authorization")
-        request.addValue("application/json", forHTTPHeaderField: "Accept")
 
         if let httpBody {
             request.httpBody = httpBody
             request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        }
-
-        if let userAgent {
-            request.addValue(userAgent, forHTTPHeaderField: "User-Agent")
         }
 
         let (data, response) = try await session.data(for: request)
