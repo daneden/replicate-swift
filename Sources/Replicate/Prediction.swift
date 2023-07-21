@@ -1,6 +1,9 @@
-import struct Foundation.Date
-import struct Foundation.TimeInterval
-import struct Foundation.URL
+import Foundation
+
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+
 import struct Dispatch.DispatchTime
 
 /// A prediction with unspecified inputs and outputs.
@@ -153,6 +156,15 @@ public struct Prediction<Input, Output>: Identifiable where Input: Codable, Outp
     ///     - client: The client used to make API requests.
     public mutating func cancel(with client: Client) async throws {
         self = try await client.cancelPrediction(Self.self, id: id)
+    }
+
+    public func stream(with client: Client) async throws -> (URLSession.AsyncBytes, URLResponse)? {
+        guard let url = self.urls["stream"] else {
+            return nil
+        }
+
+        let request = URLRequest(url: url)
+        return try await client.session.bytes(for: request)
     }
 }
 
